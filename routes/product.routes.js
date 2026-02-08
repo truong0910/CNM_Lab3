@@ -1,27 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const ProductController = require('../controllers/product.controller');
-const { requireAuth } = require('../middlewares/auth.middleware');
+const { requireLogin, requireRole } = require('../middlewares/auth.middleware');
 
-// Tất cả routes đều cần đăng nhập
-router.use(requireAuth);
+router.use(requireLogin);
 
-// Hiển thị danh sách sản phẩm
 router.get('/', ProductController.index);
 
-// Hiển thị form thêm sản phẩm
-router.get('/add', ProductController.showAddForm);
+// Admin only
+router.get('/add', requireRole('admin'), ProductController.showAddForm);
+router.post('/', requireRole('admin'), ProductController.create);
 
-// Thêm sản phẩm
-router.post('/add', ProductController.create);
+router.get('/:id/edit', requireRole('admin'), ProductController.showEditForm);
+router.post('/:id/update', requireRole('admin'), ProductController.update);
 
-// Hiển thị form sửa sản phẩm
-router.get('/edit/:id', ProductController.showEditForm);
-
-// Cập nhật sản phẩm
-router.post('/edit/:id', ProductController.update);
-
-// Xóa sản phẩm
-router.post('/delete/:id', ProductController.delete);
+router.get('/:id/delete', requireRole('admin'), ProductController.delete);
 
 module.exports = router;

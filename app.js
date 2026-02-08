@@ -25,9 +25,18 @@ app.use(session({
 // Routes
 const authRoutes = require('./routes/auth.routes');
 const productRoutes = require('./routes/product.routes');
+const categoryRoutes = require('./routes/category.routes');
+
+// Make user available to all views
+app.use((req, res, next) => {
+    res.locals.currentPath = req.path;
+    res.locals.user = req.session.user || null;
+    next();
+});
 
 app.use('/', authRoutes);
 app.use('/products', productRoutes);
+app.use('/categories', categoryRoutes);
 
 // Redirect root to products
 app.get('/', (req, res) => {

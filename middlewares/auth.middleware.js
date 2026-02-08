@@ -1,9 +1,20 @@
-// Middleware kiểm tra đăng nhập
-function requireAuth(req, res, next) {
-    if (!req.session.user) {
-        return res.redirect('/login');
+const requireLogin = (req, res, next) => {
+    if (req.session && req.session.user) {
+        return next();
     }
-    next();
-}
+    return res.redirect('/login');
+};
 
-module.exports = { requireAuth };
+const requireRole = (role) => {
+    return (req, res, next) => {
+        if (req.session && req.session.user && req.session.user.role === role) {
+            return next();
+        }
+        return res.status(403).send('Forbidden: You do not have permission to perform this action');
+    };
+};
+
+module.exports = {
+    requireLogin,
+    requireRole
+};

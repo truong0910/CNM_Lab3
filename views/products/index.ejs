@@ -6,77 +6,158 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Danh sách sản phẩm</title>
     <link rel="stylesheet" href="/styles.css">
+    <style>
+        /* Inventory Status */
+        .status-out {
+            color: red;
+            font-weight: bold;
+        }
+
+        .status-low {
+            color: orange;
+            font-weight: bold;
+        }
+
+        .status-ok {
+            color: green;
+        }
+
+        /* Filters */
+        .filters {
+            background: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .filter-group {
+            display: inline-block;
+            margin-right: 15px;
+        }
+    </style>
 </head>
 
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Quản lý sản phẩm (DynamoDB)</h1>
-            <div class="user-info">
-                <span>Xin chào, <strong>
-                        <%= user.username %>
-                    </strong></span>
-                <a href="/logout" class="btn btn-secondary">Đăng xuất</a>
-            </div>
-        </div>
-
-        <div class="mb-20">
-            <a href="/products/add" class="btn btn-success">+ Thêm sản phẩm mới</a>
-        </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Hình ảnh</th>
-                    <th>Tên sản phẩm</th>
-                    <th>Giá</th>
-                    <th>Số lượng</th>
-                    <th>Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                <% if (products.length===0) { %>
-                    <tr>
-                        <td colspan="6" class="text-center">Chưa có sản phẩm nào</td>
-                    </tr>
+        <header>
+            <div class="user-info" style="float: right;">
+                <% if (user) { %>
+                    <span>Xin chào, <strong>
+                            <%= user.username %>
+                        </strong> (<%= user.role %>)</span>
+                    <a href="/logout" class="btn btn-secondary">Đăng xuất</a>
                     <% } else { %>
-                        <% products.forEach(product=> { %>
-                            <tr>
-                                <td class="product-id">
-                                    <%= product.id.substring(0, 8) %>...
-                                </td>
-                                <td>
-                                    <% if (product.url_image) { %>
-                                        <img src="<%= product.url_image %>" alt="<%= product.name %>"
-                                            class="product-image">
-                                        <% } else { %>
-                                            <div class="no-image">No Image</div>
-                                            <% } %>
-                                </td>
-                                <td>
-                                    <%= product.name %>
-                                </td>
-                                <td>
-                                    <%= product.price.toLocaleString('vi-VN') %> đ
-                                </td>
-                                <td>
-                                    <%= product.quantity %>
-                                </td>
-                                <td>
-                                    <div class="actions">
-                                        <a href="/products/edit/<%= product.id %>" class="btn btn-warning">Sửa</a>
-                                        <form action="/products/delete/<%= product.id %>" method="POST"
-                                            onsubmit="return confirm('Bạn có chắc muốn xóa sản phẩm này?');">
-                                            <button type="submit" class="btn btn-danger">Xóa</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            <% }); %>
+                        <a href="/login" class="btn">Đăng nhập</a>
+                        <% } %>
+            </div>
+            <h1>Quản lý sản phẩm</h1>
+            <nav>
+                <a href="/products">Sản phẩm</a> |
+                <a href="/categories">Danh mục</a>
+            </nav>
+        </header>
+
+        <!-- Search & Filter -->
+        <div class="filters">
+            <form action="/products" method="GET">
+                <div class="filter-group">
+                    <input type="text" name="name" placeholder="Tên sản phẩm"
+                        value="<%= filters && filters.name || '' %>">
+                </div>
+                <div class="filter-group">
+                    <select name="categoryId">
+                        <option value="">Tất cả danh mục</option>
+                        <% categories.forEach(cat=> { %>
+                            <option value="<%= cat.categoryId %>" <%=filters && filters.categoryId==cat.categoryId
+                                ? 'selected' : '' %>><%= cat.name %>
+                            </option>
+                            <% }) %>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <input type="number" name="minPrice" placeholder="Giá từ" style="width: 80px;"
+                        value="<%= filters && filters.minPrice || '' %>"> -
+                    <input type="number" name="maxPrice" placeholder="đến" style="width: 80px;"
+                        value="<%= filters && filters.maxPrice || '' %>">
+                </div>
+                <button type="submit" class="btn btn-primary">Tìm kiếm</button>
+            </form>
+        </div>
+
+        <% if (user && user.role==='admin' ) { %>
+            <div class="mb-20">
+                <a href="/products/add" class="btn btn-success">+ Thêm sản phẩm mới</a>
+            </div>
+            <% } %>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Hình ảnh</th>
+                            <th>Tên sản phẩm</th>
+                            <th>Danh mục</th> <!-- New column -->
+                            <th>Giá</th>
+                            <th>Số lượng</th>
+                            <th>Trạng thái</th> <!-- Inventory Status -->
+                            <% if (user && user.role==='admin' ) { %>
+                                <th>Thao tác</th>
                                 <% } %>
-            </tbody>
-        </table>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (products.length===0) { %>
+                            <tr>
+                                <td colspan="7" class="text-center">Chưa có sản phẩm nào</td>
+                            </tr>
+                            <% } else { %>
+                                <% products.forEach(product=> { %>
+                                    <tr>
+                                        <td>
+                                            <% if (product.url_image) { %>
+                                                <img src="<%= product.url_image %>" alt="<%= product.name %>"
+                                                    class="product-image" style="max-width: 50px;">
+                                                <% } else { %>
+                                                    <span>No Image</span>
+                                                    <% } %>
+                                        </td>
+                                        <td>
+                                            <%= product.name %>
+                                        </td>
+                                        <td>
+                                            <!-- Find category name locally from passed categories array -->
+                                            <% const cat=categories.find(c=> c.categoryId === product.categoryId); %>
+                                                <%= cat ? cat.name : 'Chưa phân loại' %>
+                                        </td>
+                                        <td>
+                                            <%= Number(product.price).toLocaleString('vi-VN') %> đ
+                                        </td>
+                                        <td>
+                                            <%= product.quantity %>
+                                        </td>
+                                        <td>
+                                            <% if (product.quantity==0) { %>
+                                                <span class="status-out">Hết hàng</span>
+                                                <% } else if (product.quantity < 5) { %>
+                                                    <span class="status-low">Sắp hết</span>
+                                                    <% } else { %>
+                                                        <span class="status-ok">Còn hàng</span>
+                                                        <% } %>
+                                        </td>
+                                        <% if (user && user.role==='admin' ) { %>
+                                            <td>
+                                                <a href="/products/<%= product.id %>/edit"
+                                                    class="btn btn-warning btn-sm">Sửa</a>
+                                                <!-- Using GET for delete link as per routes -->
+                                                <a href="/products/<%= product.id %>/delete"
+                                                    class="btn btn-danger btn-sm"
+                                                    onclick="return confirm('Bạn có chắc muốn xóa?')">Xóa</a>
+                                            </td>
+                                            <% } %>
+                                    </tr>
+                                    <% }); %>
+                                        <% } %>
+                    </tbody>
+                </table>
     </div>
 </body>
 

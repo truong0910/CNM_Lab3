@@ -1,8 +1,6 @@
-const UserModel = require('../model/user.model');
-const bcrypt = require('bcryptjs');
+const AuthService = require('../services/auth.service');
 
 class AuthController {
-    // Hiển thị trang login
     static showLogin(req, res) {
         if (req.session.user) {
             return res.redirect('/products');
@@ -10,35 +8,38 @@ class AuthController {
         res.render('auth/login', { error: null });
     }
 
-    // Xử lý login
     static async login(req, res) {
+        const { username, password } = req.body;
         try {
-            const { username, password } = req.body;
-            const user = await UserModel.findByUsername(username);
-
-            // Kiểm tra mật khẩu đã mã hóa
-            if (user && await bcrypt.compare(password, user.password)) {
-                req.session.user = {
-                    username: user.username
-                };
-                return res.redirect('/products');
+            const user = await AuthService.login(username, password);
+            if (!user) {
+                return res.render('auth/login', { error: 'Invalid username or password' });
             }
-
-            res.render('auth/login', { error: 'Sai tên đăng nhập hoặc mật khẩu!' });
+            req.session.user = user;
+            res.redirect('/products');
         } catch (error) {
-            console.error(error);
+            console.error('Login error:', error);
             res.status(500).send('Server Error');
         }
     }
 
-    // Xử lý logout
     static logout(req, res) {
-        req.session.destroy((err) => {
-            if (err) {
-                console.error(err);
-            }
+        req.session.destroy();
+        res.redirect('/login');
+    }
+
+    static showRegister(req, res) {
+        res.render('auth/register', { error: null });
+    }
+
+    static async register(req, res) {
+        const { username, password, role } = req.body;
+        try {
+            await AuthService.register(username, password, role || 'staff');
             res.redirect('/login');
-        });
+        } catch (error) {
+            res.render('auth/register', { error: error.message });
+        }
     }
 }
 

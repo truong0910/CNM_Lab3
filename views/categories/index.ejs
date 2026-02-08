@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Categories - Product Management</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Categories</h1>
+            <nav>
+                <a href="/products">Products</a> |
+                <a href="/categories" class="active">Categories</a> |
+                <% if (user) { %>
+                    <span>Welcome, <%= user.username %> (<%= user.role %>)</span>
+                    <a href="/logout">Logout</a>
+                    <% } else { %>
+                        <a href="/login">Login</a>
+                        <% } %>
+            </nav>
+        </header>
+
+        <% if (user && user.role==='admin' ) { %>
+            <div class="actions">
+                <a href="/categories/add" class="btn btn-primary">Add New Category</a>
+            </div>
+            <% } %>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <% if (user && user.role==='admin' ) { %>
+                                <th>Actions</th>
+                                <% } %>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (categories.length> 0) { %>
+                            <% categories.forEach(category=> { %>
+                                <tr>
+                                    <td>
+                                        <%= category.name %>
+                                    </td>
+                                    <td>
+                                        <%= category.description %>
+                                    </td>
+                                    <% if (user && user.role==='admin' ) { %>
+                                        <td>
+                                            <a href="/categories/<%= category.categoryId %>/edit"
+                                                class="btn btn-sm">Edit</a>
+                                            <!-- Use a form or GET for delete for simplicity in this lab -->
+                                            <a href="/categories/<%= category.categoryId %>/delete"
+                                                class="btn btn-sm btn-danger"
+                                                onclick="return confirm('Are you sure?')">Delete</a>
+                                        </td>
+                                        <% } %>
+                                </tr>
+                                <% }) %>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="3">No categories found.</td>
+                                        </tr>
+                                        <% } %>
+                    </tbody>
+                </table>
+    </div>
+</body>
+
+</html>
